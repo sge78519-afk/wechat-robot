@@ -11,17 +11,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Setup Android SDK (with system JDK)
+        run: |
+          # 切换到系统 JDK（sdkmanager 需要 JDK 17+）
+          export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+          java -version 2>&1 | head -1
+          
+          # Accept licenses
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=$ANDROID_SDK_ROOT 2>/dev/null || true
+          
+          # Install required SDK components
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platforms;android-29" "build-tools;29.0.3"
+
+      - name: Set up JDK 11 (for Gradle 6.5)
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
-
-      - name: Setup Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-29" "build-tools;29.0.3"
 
       - name: Grant gradlew execute permission
         run: chmod +x gradlew
